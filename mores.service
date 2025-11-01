@@ -1,0 +1,19 @@
+[Unit]
+Description=Mores Telegram bot
+After=network.target
+
+[Service]
+Type=simple
+User=mores
+WorkingDirectory=/opt/mores
+Environment=NODE_ENV=production
+Environment=NODE_OPTIONS=--max-old-space-size=256
+Environment=DATA_DIR=/opt/mores/data
+ExecStart=/usr/bin/node /opt/mores/dist/bot.js
+Restart=always
+RestartSec=5
+StandardOutput=file:/var/log/mores/out.log
+StandardError=file:/var/log/mores/err.log
+
+[Install]
+WantedBy=multi-user.target
