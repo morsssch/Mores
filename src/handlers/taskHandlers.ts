@@ -480,9 +480,10 @@ export function registerTaskHandlers(bot: Bot<BotContext>) {
 
     // Admin: unlock (add to whitelist) and ban (remove from whitelist)
     bot.command('unlock', async (ctx) => {
-        const owner = process.env.ADMIN_USERNAME ?? 'morssssss';
-        const sender = ctx.from?.username;
-        if (sender !== owner && String(ctx.from?.id) !== process.env.ADMIN_CHAT_ID) {
+        const owner = (process.env.ADMIN_USERNAME ?? 'morssssss').toString().replace(/^@/, '').toLowerCase();
+        const sender = (ctx.from?.username ?? '').toString().replace(/^@/, '').toLowerCase();
+        const adminId = process.env.ADMIN_CHAT_ID ? String(process.env.ADMIN_CHAT_ID) : undefined;
+        if (sender !== owner && String(ctx.from?.id) !== adminId) {
             await ctx.reply('Только владелец может использовать эту команду');
             return;
         }
@@ -502,9 +503,10 @@ export function registerTaskHandlers(bot: Bot<BotContext>) {
     });
 
     bot.command('ban', async (ctx) => {
-        const owner = process.env.ADMIN_USERNAME ?? 'morssssss';
-        const sender = ctx.from?.username;
-        if (sender !== owner && String(ctx.from?.id) !== process.env.ADMIN_CHAT_ID) {
+        const owner = (process.env.ADMIN_USERNAME ?? 'morssssss').toString().replace(/^@/, '').toLowerCase();
+        const sender = (ctx.from?.username ?? '').toString().replace(/^@/, '').toLowerCase();
+        const adminId = process.env.ADMIN_CHAT_ID ? String(process.env.ADMIN_CHAT_ID) : undefined;
+        if (sender !== owner && String(ctx.from?.id) !== adminId) {
             await ctx.reply('Только владелец может использовать эту команду');
             return;
         }
