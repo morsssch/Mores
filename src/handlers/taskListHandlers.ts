@@ -449,7 +449,8 @@ export async function handleAllTasks(ctx: BotContext) {
         for (const date of dates) {
             const list = groups[date];
             const completedCount = list.filter((t:any)=> t.status === 'completed').length;
-            message += `*${date}*`;
+            const prettyDate = date === 'Без даты' ? date : formatDate(date);
+            message += `*${prettyDate}*`;
             if (completedCount > 0) message += ` — ${completedCount}/${list.length} выполнено`;
             message += `\n`;
             for (const t of list) message += `${formatTaskLine(t)}\n`;

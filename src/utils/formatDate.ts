@@ -21,7 +21,9 @@ export function formatDate(dateStr: string): string {
         "Суббота",
     ];
 
-    if (diffDays >= 0 && diffDays <= 7) {
+    if (diffDays === 0) return "Сегодня";
+    if (diffDays === 1) return "Завтра";
+    if (diffDays >= 2 && diffDays <= 7) {
         return weekdays[inputDate.getDay()];
     }
 

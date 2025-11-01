@@ -9,6 +9,8 @@ import { parseTimeFromText } from "../utils/parseTime";
 import { verifyPayloadCompact } from "../utils/hmac";
 import { setTaskStatus, getTaskById, deleteTask, deleteTasksByParent, getTasks, addTask as addTaskDb } from "../db/tasks";
 import { addReminder, deleteRemindersForTask } from "../db/reminders";
+import { formatDate } from "../utils/formatDate";
+import { getLocalISODate } from "../utils/getLocalISODate";
 import { addRepeatRule, getRepeatRulesForTask, deleteRepeatRule } from "../db/repeatRules";
 import { addToWhitelist, removeFromWhitelist } from "../db/master";
 
@@ -21,7 +23,12 @@ export async function handleSaveTaskCallback(ctx: BotContext) {
     }
 
     try {
-        const today = new Date().toISOString().split("T")[0];
+        const today = getLocalISODate(undefined, 3);
+
+        // If user provided only time (no date) — assume today (Moscow)
+        if (!ctx.session.tempDue && ctx.session.tempDueTime) {
+            ctx.session.tempDue = today;
+        }
 
         const id = addTaskDb({
             text: ctx.session.tempTaskText,
@@ -32,7 +39,7 @@ export async function handleSaveTaskCallback(ctx: BotContext) {
             chat_id: ctx.chat?.id ?? ctx.from?.id ?? null,
         });
 
-        // if a temp reminder was set during creation, persist it
+    // if a temp reminder was set during creation, persist it
         let reminderInfo = "";
         if (ctx.session.tempReminder) {
             try {
@@ -41,6 +48,21 @@ export async function handleSaveTaskCallback(ctx: BotContext) {
                 reminderInfo = `\n\n🔔 Напомню: ${rd.toLocaleString()}`;
             } catch (e) {
                 console.error("Ошибка при сохранении напоминания:", e);
+            }
+        }
+
+        // If task has explicit due date and time, create automatic reminder at that exact datetime (Moscow local -> store as UTC ISO)
+        if (ctx.session.tempDue && ctx.session.tempDueTime) {
+            try {
+                const parts = (ctx.session.tempDue as string).split("-");
+                const [y, m, d] = parts.map((p) => Number(p));
+                const [hh, mm] = (ctx.session.tempDueTime as string).split(":").map((p) => Number(p));
+                const utcMs = Date.UTC(y, m - 1, d, hh - 3, mm, 0); // Moscow -> UTC
+                const iso = new Date(utcMs).toISOString();
+                addReminder(id as number, iso, ctx.chat?.id ?? ctx.from?.id ?? undefined);
+                reminderInfo += `\n\n🔔 Напомню: ${formatDate(ctx.session.tempDue as string)} ${ctx.session.tempDueTime}`;
+            } catch (e) {
+                console.error('Ошибка при автоматическом создании напоминания:', e);
             }
         }
 

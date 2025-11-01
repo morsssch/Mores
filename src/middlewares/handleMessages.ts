@@ -46,7 +46,10 @@ export async function handleMessages(ctx: BotContext) {
 
                 const [y, m, d] = datePart.split("-").map((v) => parseInt(v, 10));
                 const [hh, mm] = timePart.split(":").map((v) => parseInt(v, 10));
-                dt = new Date(y, m - 1, d, hh, mm, 0);
+                // Interpret entered date/time as Moscow local time (UTC+3).
+                // Convert Moscow local -> UTC by subtracting 3 hours when creating UTC Date.
+                const utcMs = Date.UTC(y, m - 1, d, hh - 3, mm, 0);
+                dt = new Date(utcMs);
 
                 // if user provided only time (no explicit date) and time already passed today, assume next day
                 if (!parsedDate && parsedTime) {
