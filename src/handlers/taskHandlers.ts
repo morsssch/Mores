@@ -241,21 +241,12 @@ export function registerTaskHandlers(bot: Bot<BotContext>) {
             }
 
             // delete reminders associated with this task and occurrences
-            try { deleteRemindersForTask(id, chatId); } catch (_) {}
-            try {
-                // for occurrences created from parent, delete their reminders too
-                const { getTasks } = await import('../db/tasks');
-                const all = getTasks(chatId);
-                for (const t of all) {
-                    if (t.parent_id === id) {
-                        try { deleteRemindersForTask(t.id as number, chatId); } catch (_) {}
-                    }
-                }
-            } catch (e) { /* ignore */ }
-
-            // Soft-delete occurrences and the master task
-            try { deleteTasksByParent(id, chatId); } catch (e) { console.error('Ошибка при удалении дочерних задач:', e); }
-            try { deleteTask(id, chatId); } catch (e) { console.error('Ошибка при удалении задачи:', e); }
+            try { 
+                // perform hard delete: remove reminders, repeat rules, child occurrences and task row
+                const { deleteTaskHard, deleteTasksByParentHard } = await import('../db/tasks');
+                deleteTasksByParentHard(id, chatId);
+                deleteTaskHard(id, chatId);
+            } catch (e) { console.error('Ошибка при удалении задачи (hard):', e); }
 
             await ctx.reply(`Задача ${String(id).padStart(4,'0')} и все её повторяющиеся вхождения удалены.`);
         } catch (e) {

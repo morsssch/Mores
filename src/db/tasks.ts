@@ -30,7 +30,7 @@ export function getTasks(chatId?: number): Task[] {
 export function getAllTasks(chatId?: number): Task[] {
     const dbInstance = getDbForChat(chatId);
     const stmt = dbInstance.prepare(
-        "SELECT * FROM tasks ORDER BY COALESCE(due_date, ''), due_time IS NULL, due_time"
+        "SELECT * FROM tasks WHERE status != 'deleted' ORDER BY COALESCE(due_date, ''), due_time IS NULL, due_time"
     );
     return stmt.all() as Task[];
 }
@@ -139,6 +139,37 @@ export function deleteTasksByParent(parentId: number, chatId?: number) {
     const dbInstance = getDbForChat(chatId);
     const stmt = dbInstance.prepare("UPDATE tasks SET status = 'deleted' WHERE parent_id = ?");
     stmt.run(parentId);
+}
+
+export function deleteTaskHard(id: number, chatId?: number) {
+    const dbInstance = getDbForChat(chatId);
+    try {
+        const delRem = dbInstance.prepare("DELETE FROM reminders WHERE task_id = ?");
+        delRem.run(id);
+    } catch (e) { console.error('deleteTaskHard reminders error', e); }
+    try {
+        const delRules = dbInstance.prepare("DELETE FROM repeat_rules WHERE task_id = ?");
+        delRules.run(id);
+    } catch (e) { /* ignore */ }
+    try {
+        const delChildren = dbInstance.prepare("DELETE FROM tasks WHERE parent_id = ?");
+        delChildren.run(id);
+    } catch (e) { /* ignore */ }
+    try {
+        const delTask = dbInstance.prepare("DELETE FROM tasks WHERE id = ?");
+        delTask.run(id);
+    } catch (e) { console.error('deleteTaskHard task error', e); }
+}
+
+export function deleteTasksByParentHard(parentId: number, chatId?: number) {
+    const dbInstance = getDbForChat(chatId);
+    try {
+        const childIds = dbInstance.prepare("SELECT id FROM tasks WHERE parent_id = ?").all(parentId).map((r:any)=>r.id);
+        for (const cid of childIds) {
+            try { dbInstance.prepare("DELETE FROM reminders WHERE task_id = ?").run(cid); } catch(_) {}
+            try { dbInstance.prepare("DELETE FROM tasks WHERE id = ?").run(cid); } catch(_) {}
+        }
+    } catch (e) { console.error('deleteTasksByParentHard error', e); }
 }
 
 export function setTaskStatus(id: number, status: 'pending' | 'completed' | 'deleted', completedAt?: string, chatId?: number) {

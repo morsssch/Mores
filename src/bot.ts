@@ -61,6 +61,10 @@ bot.use(
 );
 
 bot.command("start", async (ctx) => {
+    try {
+        const { registerUser } = await import('./db/master');
+        if (ctx.from && ctx.from.id) registerUser(ctx.from.id);
+    } catch (_) {}
     await ctx.reply(
         `👋 Добро пожаловать в *Mores*!\n\n` +
             `Я создана чтобы помогать вам следить за задачами и дедлайнами в простой и удобной форме.\n\n` +
